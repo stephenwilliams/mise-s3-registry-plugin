@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#MISE description="End-to-end mise round-trip against a real s3reg serve + MinIO (Docker). Guarded by S3REG_E2E=1."
+set -euo pipefail
+
+if [ "${S3REG_E2E:-}" != "1" ]; then
+    echo "S3REG_E2E is not 1; skipping E2E round-trip (set S3REG_E2E=1 to run it)."
+    exit 0
+fi
+
+ROOT="${MISE_PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+exec "${ROOT}/test/e2e/run.sh"
