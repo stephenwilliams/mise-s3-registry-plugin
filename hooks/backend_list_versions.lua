@@ -1,12 +1,13 @@
 --- Resolves the s3reg base URL and optional bearer token, preferring per-tool
 --- options in mise.toml over the S3REG_URL / S3REG_TOKEN environment variables.
 local function get_config(ctx)
-    local env = require("env")
     local options = ctx.options or {}
 
+    -- mise's env module only exposes setenv; reads go through standard Lua
+    -- os.getenv (https://mise.jdx.dev/plugin-lua-modules.html).
     local url = options.url
     if not url or url == "" then
-        url = env.getenv("S3REG_URL")
+        url = os.getenv("S3REG_URL")
     end
     if not url or url == "" then
         error("s3reg base URL is not set: pass it as the 'url' tool option or set S3REG_URL")
@@ -15,7 +16,7 @@ local function get_config(ctx)
 
     local token = options.token
     if not token or token == "" then
-        token = env.getenv("S3REG_TOKEN")
+        token = os.getenv("S3REG_TOKEN")
     end
 
     return url, token

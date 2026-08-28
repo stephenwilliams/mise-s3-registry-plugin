@@ -111,9 +111,10 @@ local cmd = {}
 
 -- env module ---------------------------------------------------------
 
+-- mise's env module only writes; read env vars with standard Lua os.getenv.
+-- https://mise.jdx.dev/plugin-lua-modules.html
 ---@class env
 ---@field setenv fun(key: string, val: string) Set an environment variable
----@field getenv fun(key: string): string? Get an environment variable
 local env = {}
 
 -- archiver module ----------------------------------------------------

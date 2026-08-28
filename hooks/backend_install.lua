@@ -1,12 +1,13 @@
 --- Resolves the s3reg base URL and optional bearer token, preferring per-tool
 --- options in mise.toml over the S3REG_URL / S3REG_TOKEN environment variables.
 local function get_config(ctx)
-    local env = require("env")
     local options = ctx.options or {}
 
+    -- mise's env module only exposes setenv; reads go through standard Lua
+    -- os.getenv (https://mise.jdx.dev/plugin-lua-modules.html).
     local url = options.url
     if not url or url == "" then
-        url = env.getenv("S3REG_URL")
+        url = os.getenv("S3REG_URL")
     end
     if not url or url == "" then
         error("s3reg base URL is not set: pass it as the 'url' tool option or set S3REG_URL")
@@ -15,7 +16,7 @@ local function get_config(ctx)
 
     local token = options.token
     if not token or token == "" then
-        token = env.getenv("S3REG_TOKEN")
+        token = os.getenv("S3REG_TOKEN")
     end
 
     return url, token
@@ -57,11 +58,11 @@ end
 local function sha256_file(cmd, path)
     local quoted = '"' .. path .. '"'
 
-    local ok, output = pcall(cmd.exec, "shasum -a 256 " .. quoted)
-    if not ok or not output or output == "" then
-        ok, output = pcall(cmd.exec, "sha256sum " .. quoted)
-    end
-    if not ok or not output or output == "" then
+    -- cmd.exec yields in mise's async Lua, so it cannot be wrapped in pcall
+    -- (that raises "attempt to yield across a C-call boundary"). Let the shell
+    -- choose whichever hashing tool exists in a single invocation instead.
+    local output = cmd.exec("shasum -a 256 " .. quoted .. " 2>/dev/null || sha256sum " .. quoted)
+    if not output or output == "" then
         error("No sha256 utility (shasum or sha256sum) available to verify the download")
     end
 
@@ -77,19 +78,16 @@ end
 local function extract_archive(cmd, archive_path, install_path)
     cmd.exec('mkdir -p "' .. install_path .. '"')
 
+    -- archiver.decompress and cmd.exec both yield, so neither can be wrapped in
+    -- pcall (mise raises "attempt to yield across a C-call boundary"). Prefer the
+    -- native archiver module and fall back to tar when it is unavailable.
     local has_archiver, archiver = pcall(require, "archiver")
     if has_archiver and archiver and archiver.decompress then
-        local ok, err = pcall(archiver.decompress, archive_path, install_path)
-        if not ok then
-            error("Failed to extract archive: " .. tostring(err))
-        end
+        archiver.decompress(archive_path, install_path)
         return
     end
 
-    local ok, err = pcall(cmd.exec, 'tar -xzf "' .. archive_path .. '" -C "' .. install_path .. '"')
-    if not ok then
-        error("Failed to extract archive: " .. tostring(err))
-    end
+    cmd.exec('tar -xzf "' .. archive_path .. '" -C "' .. install_path .. '"')
 end
 
 --- Installs a specific version of a tool
@@ -154,17 +152,23 @@ function PLUGIN:BackendInstall(ctx)
         error("Failed to parse artifact response for " .. tool .. "@" .. version)
     end
 
-    local dl_ok, dl_err =
-        pcall(http.download_file, { url = artifact.url, headers = auth_headers(token) }, download_path)
-    if not dl_ok then
-        error("Failed to download " .. tool .. "@" .. version .. ": " .. tostring(dl_err))
-    end
+    -- mise hands download_path to the plugin as a directory. Download the
+    -- archive into it under the artifact's real filename (taken from the URL
+    -- path) so the extractor can detect the format from the extension.
+    local url_path = artifact.url:match("^[^?]+") or artifact.url
+    local filename = url_path:match("([^/]+)$") or (tool .. "-" .. version .. ".tar.gz")
+    local archive_path = file.join_path(download_path, filename)
+
+    -- http.download_file yields, so it must be called directly rather than via
+    -- pcall (which raises "attempt to yield across a C-call boundary"); mise
+    -- surfaces any download error itself.
+    http.download_file({ url = artifact.url, headers = auth_headers(token) }, archive_path)
 
     -- Verify integrity BEFORE extracting anything from the downloaded archive.
     if not artifact.sha256 or artifact.sha256 == "" then
         error("s3reg artifact response for " .. tool .. "@" .. version .. " did not include a sha256 checksum")
     end
-    local actual_sha256 = sha256_file(cmd, download_path)
+    local actual_sha256 = sha256_file(cmd, archive_path)
     if actual_sha256 ~= string.lower(artifact.sha256) then
         error(
             "sha256 mismatch for "
@@ -178,7 +182,7 @@ function PLUGIN:BackendInstall(ctx)
         )
     end
 
-    extract_archive(cmd, download_path, install_path)
+    extract_archive(cmd, archive_path, install_path)
 
     local bin_dir = file.join_path(install_path, "bin")
     if file.exists(bin_dir) then
