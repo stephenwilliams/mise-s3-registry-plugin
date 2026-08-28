@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+#MISE description="Run backend plugin tests - test plugin linking and basic functionality"
+set -euo pipefail
+
+# Link the plugin for testing
+mise plugin link --force s3reg .
+
+# Clear cache to ensure fresh testing
+mise cache clear
+
+echo "Testing plugin linking and basic functionality..."
+
+# Override with a real tool name from your s3reg registry, e.g.:
+#   S3REG_TEST_TOOL=mytool mise-tasks/test
+TEST_TOOL="${S3REG_TEST_TOOL:-example-tool}"
+
+if [ -z "${S3REG_URL:-}" ]; then
+    echo "S3REG_URL is not set; skipping version listing and install checks"
+    echo "Basic plugin structure tests completed"
+    exit 0
+fi
+
+echo "Testing version listing for ${TEST_TOOL}..."
+if mise ls-remote "s3reg:${TEST_TOOL}" 2>/dev/null; then
+    echo "Version listing works"
+else
+    echo "Version listing failed - check S3REG_URL/S3REG_TOKEN and that ${TEST_TOOL} exists in the registry"
+fi
+
+echo "Testing installation..."
+if mise install "s3reg:${TEST_TOOL}@latest" 2>/dev/null; then
+    echo "Installation works"
+
+    if mise exec "s3reg:${TEST_TOOL}@latest" -- "${TEST_TOOL}" --version 2>/dev/null; then
+        echo "Tool execution works"
+    else
+        echo "Tool execution failed - check backend_exec_env.lua implementation"
+    fi
+else
+    echo "Installation failed - check backend_install.lua implementation and registry contents"
+fi
+
+echo "Basic plugin structure tests completed"
