@@ -22,3 +22,26 @@ jobs:
       - run: mise run ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # End-to-end round-trip against a real s3reg serve + MinIO. Linux only:
+  # GitHub's macOS runners have no Docker daemon.
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      MISE_YES: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check out s3-registry (the server the plugin talks to)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: stephenwilliams/s3-registry
+          path: s3-registry
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - name: Build s3reg
+        run: mise run build
+        working-directory: s3-registry
+      - name: Run E2E
+        run: mise run test-e2e
+        env:
+          S3REG_E2E: "1"
+          S3REG_BIN: ${{ github.workspace }}/s3-registry/bin/s3reg
