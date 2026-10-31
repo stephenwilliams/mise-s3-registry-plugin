@@ -18,8 +18,8 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 PLUGIN_DIR=$(cd "$SCRIPT_DIR/../.." && pwd)
 S3REG_SRC=${S3REG_SRC:-$(cd "$PLUGIN_DIR/.." && pwd)/s3-registry}
 
-MINIO_IMAGE=${MINIO_IMAGE:-minio/minio:RELEASE.2025-04-22T22-12-26Z}
-MC_IMAGE=${MC_IMAGE:-minio/mc:RELEASE.2025-04-16T18-13-26Z}
+MINIO_IMAGE=${MINIO_IMAGE:-cgr.dev/chainguard/minio:latest@sha256:3b6e40c30ecd5cea627e382ff0b82ca841f58c52294578787043ee80c8ef7c82}
+MC_IMAGE=${MC_IMAGE:-cgr.dev/chainguard/minio-client:latest@sha256:5b759d9e248ad9f1ab8455f8168b86a47acb1e08207d38603b504bdc5a555d7a}
 MINIO_NAME="s3reg-e2e-minio-$$"
 MINIO_PORT=${MINIO_PORT:-$(free_port)}
 BUCKET=${BUCKET:-s3reg-e2e}
