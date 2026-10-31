@@ -1,16 +1,17 @@
 [env]
 MISE_USE_VERSIONS_HOST = "0"
-HK_MISE = 1
+HK_MISE = "1"
 
 [hooks]
 postinstall = "hk install --mise"
 
 [tools]
 actionlint = "latest"
-hk = "latest"
+hk = "2.10"
 lua = "5.4"
 lua-language-server = "latest"
 pkl = "latest"
+shellcheck = "latest"
 stylua = "latest"
 
 [tasks.format]
