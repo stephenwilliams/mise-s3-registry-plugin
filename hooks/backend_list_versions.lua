@@ -32,7 +32,7 @@ end
 --- Lists available versions for a tool in this backend
 --- Documentation: https://mise.jdx.dev/backend-plugin-development.html#backendlistversions
 --- @param ctx {tool: string, options: table} Context
---- @return {versions: string[]} Table containing the ascending list of available versions
+--- @return BackendListVersionsResult Ascending list of versions, with release dates when s3reg has them
 function PLUGIN:BackendListVersions(ctx)
     local tool = ctx.tool
 
@@ -66,7 +66,20 @@ function PLUGIN:BackendListVersions(ctx)
 
     -- mise applies the user's semver range / @latest against this list, so
     -- it must be returned as-is rather than filtered or reordered here.
-    local versions = data.versions or {}
+    -- releases adds publish dates for minimum_release_age; servers older than
+    -- that field send only versions.
+    local versions = {}
+    if type(data.releases) == "table" then
+        for _, r in ipairs(data.releases) do
+            if type(r.created_at) == "string" and r.created_at ~= "" then
+                table.insert(versions, { version = r.version, created_at = r.created_at })
+            else
+                table.insert(versions, r.version)
+            end
+        end
+    else
+        versions = data.versions or {}
+    end
     if #versions == 0 then
         error("No versions found for " .. tool)
     end

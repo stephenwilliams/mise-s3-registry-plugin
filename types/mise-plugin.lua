@@ -29,8 +29,12 @@ ARCH_TYPE = ""
 ---@field tool string Tool name
 ---@field options table Plugin/tool options from mise.toml
 
+---@class BackendVersionEntry
+---@field version string Version string
+---@field created_at? string RFC 3339 release date, for minimum_release_age
+
 ---@class BackendListVersionsResult
----@field versions string[] List of available versions
+---@field versions (string|BackendVersionEntry)[] List of available versions, oldest first
 
 ---@class BackendInstallCtx
 ---@field tool string Tool name

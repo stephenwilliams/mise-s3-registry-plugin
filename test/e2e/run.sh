@@ -152,6 +152,8 @@ export MISE_CACHE_DIR="$WORK/mise-cache"
 export MISE_STATE_DIR="$WORK/mise-state"
 export MISE_CONFIG_DIR="$WORK/mise-config"
 export MISE_YES=1
+# mise's default minimum_release_age would hide the versions published seconds ago.
+export MISE_MINIMUM_RELEASE_AGE=0
 mkdir -p "$MISE_DATA_DIR" "$MISE_CACHE_DIR" "$MISE_STATE_DIR" "$MISE_CONFIG_DIR"
 
 export S3REG_URL="http://localhost:${SERVE_PORT}"
@@ -172,6 +174,23 @@ echo "$REMOTE"
 for v in 1.0.0 1.2.0 1.2.3 2.0.0; do
   echo "$REMOTE" | grep -qx "$v" || fail "ls-remote missing $v"
 done
+
+# --- release dates ---------------------------------------------------------
+# Every version was just published, so each has a created_at and a 1-day
+# minimum_release_age hides them all without an undated-version warning.
+log "release dates reach mise"
+mise ls-remote --json "s3reg:${TOOL}" >"$WORK/remote.json"
+python3 - "$WORK/remote.json" <<'EOF' || fail "ls-remote --json is missing created_at: $(cat "$WORK/remote.json")"
+import json, sys
+entries = json.load(open(sys.argv[1]))
+sys.exit(0 if entries and all(e.get("created_at") for e in entries) else 1)
+EOF
+AGED=$(mise ls-remote --minimum-release-age 1d "s3reg:${TOOL}" 2>"$WORK/age.err") || true
+grep -q "releases hidden by minimum_release_age" "$WORK/age.err" || fail "expected mise to hide fresh versions: $(cat "$WORK/age.err")"
+[ -z "$AGED" ] || fail "a 1d minimum_release_age should hide fresh versions; got: $AGED"
+if grep -q "has no release date" "$WORK/age.err"; then
+  fail "mise reported an undated version: $(cat "$WORK/age.err")"
+fi
 
 # --- version resolution: range, latest, exact ------------------------------
 assert_resolves() {

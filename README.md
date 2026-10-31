@@ -7,7 +7,7 @@ tools are referenced as `s3reg:<tool>` (e.g. `s3reg:mytool`).
 ## How it works
 
 - `mise ls-remote s3reg:<tool>` lists versions by calling `GET {url}/tools/{tool}/versions` on the
-  proxy.
+  proxy. Each version carries its s3reg publish date, so mise's `minimum_release_age` applies.
 - `mise install s3reg:<tool>@<version>` resolves the download via
   `GET {url}/tools/{tool}/versions/{version}/artifact?os=...&arch=...`, downloads the returned
   presigned archive URL, verifies its sha256, and extracts the archive's `bin/` directory into the
