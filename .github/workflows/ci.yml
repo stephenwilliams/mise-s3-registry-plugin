@@ -23,6 +23,34 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # Real `mise install` against a local fake s3reg, on every OS. The `ci` tasks
+  # are POSIX-only, so this job carries Windows coverage. mise 2026.10.12
+  # (winget's mise) proves the plain-string version fallback.
+  smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: macos-latest
+          - os: windows-latest
+          - os: windows-latest
+            mise: "2026.10.12"
+    name: smoke (${{ matrix.os }}${{ matrix.mise && format(', mise {0}', matrix.mise) || '' }})
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+        with:
+          version: ${{ matrix.mise }}
+          # hk too, because the postinstall hook runs it.
+          install_args: python hk
+      - run: mise run test-smoke
+        env:
+          # Skip the other [tools]; Lua 5.1 builds from source and needs MinGW on Windows.
+          MISE_TASK_RUN_AUTO_INSTALL: "false"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # End-to-end round-trip against a real s3reg serve + MinIO. Linux only:
   # GitHub's macOS runners have no Docker daemon.
   e2e:
