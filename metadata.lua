@@ -5,7 +5,7 @@
 PLUGIN = { -- luacheck: ignore
     name = "s3reg",
 
-    version = "0.1.0",
+    version = "0.2.0",
 
     description = "A mise backend plugin that installs versioned tool binaries from an s3reg registry proxy backed by a private S3 bucket.",
 

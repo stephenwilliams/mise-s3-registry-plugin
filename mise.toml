@@ -8,15 +8,16 @@ postinstall = "hk install --mise"
 [tools]
 actionlint = "latest"
 hk = "2.10"
-lua = "5.4"
+lua = "5.1"
 lua-language-server = "latest"
 pkl = "latest"
+python = "3"
 shellcheck = "latest"
 stylua = "latest"
 
 [tasks.format]
 description = "Format Lua scripts"
-run = "stylua metadata.lua hooks/"
+run = "stylua metadata.lua hooks/ lib/ test/"
 
 [tasks.lint]
 description = "Lint Lua scripts and GitHub Actions using hk"
@@ -26,6 +27,14 @@ run = "hk check"
 description = "Fix linting issues"
 run = "hk fix"
 
+[tasks.test-unit]
+description = "Unit-test lib/ on Lua 5.1, the version mise embeds"
+run = "lua test/unit/s3reg_test.lua"
+
+[tasks.test-smoke]
+description = "Real mise install of a fake tool from a local fake s3reg, in an isolated mise home"
+run = "python test/smoke/smoke.py"
+
 [tasks.ci]
 description = "Run all CI checks"
-depends = ["lint", "test"]
+depends = ["lint", "test-unit", "test"]

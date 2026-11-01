@@ -11,6 +11,7 @@
 ---@field archType string Architecture type (e.g. "amd64", "arm64")
 ---@field version string Runtime version
 ---@field pluginDirPath string Path to the plugin directory
+---@field cacheDirPath? string Plugin cache directory (mise 2026.10.17+)
 RUNTIME = {}
 
 --- @deprecated Use RUNTIME.osType instead
