@@ -8,7 +8,7 @@ postinstall = "hk install --mise"
 [tools]
 actionlint = "latest"
 hk = "2.10"
-lua = "5.1"
+lua = "5.4"
 lua-language-server = "latest"
 pkl = "latest"
 python = "3"
@@ -28,7 +28,7 @@ description = "Fix linting issues"
 run = "hk fix"
 
 [tasks.test-unit]
-description = "Unit-test lib/ on Lua 5.1, the version mise embeds"
+description = "Unit-test the lib/ helpers"
 run = "lua test/unit/s3reg_test.lua"
 
 [tasks.test-smoke]
